@@ -130,14 +130,22 @@
                 <input type="date" id="filter-to">
             </div>
             <div class="form-group">
-                <label>Customer</label>
-                <select id="filter-customer"><option value="all">All Customers</option></select>
+                <label>Customers (Multi)</label>
+                <select id="filter-customer" multiple style="height: 100px;"></select>
             </div>
             <div class="form-group">
-                <label>Product</label>
-                <select id="filter-product"><option value="all">All Products</option></select>
+                <label>Products (Multi)</label>
+                <select id="filter-product" multiple style="height: 100px;"></select>
             </div>
-            <button class="btn btn-primary" onclick="generateReport()">Generate Report</button>
+            <div class="form-group">
+                <label>Categories (Multi)</label>
+                <select id="filter-category" multiple style="height: 100px;"></select>
+            </div>
+            <div style="grid-column: span 2; display: flex; gap: 1rem; margin-top: 1rem;">
+                <button class="btn btn-primary" onclick="generateReport()" style="flex: 1;">Generate Report</button>
+                <button class="btn btn-ghost" onclick="resetFilters()">Reset Filters</button>
+            </div>
+            <p style="grid-column: span 3; font-size: 0.7rem; color: var(--text-muted);">* Hold Ctrl (or Cmd) to select multiple options</p>
         </div>
 
         <div class="summary-banner" id="summary-banner" style="display: none;">
@@ -191,7 +199,7 @@
         async function loadFilters() {
             const [custs, prods] = await Promise.all([
                 supabaseClient.from('customers').select('id, name'),
-                supabaseClient.from('products').select('id, name')
+                supabaseClient.from('products').select('id, name, category')
             ]);
             
             const cSel = document.getElementById('filter-customer');
@@ -199,28 +207,50 @@
             
             const pSel = document.getElementById('filter-product');
             prods.data?.forEach(p => pSel.innerHTML += `<option value="${p.id}">${p.name}</option>`);
+
+            const catSel = document.getElementById('filter-category');
+            const categories = [...new Set(prods.data?.map(p => p.category).filter(Boolean))];
+            categories.forEach(cat => catSel.innerHTML += `<option value="${cat}">${cat}</option>`);
         }
 
         async function generateReport() {
             const from = document.getElementById('filter-from').value;
             const to = document.getElementById('filter-to').value;
-            const customerId = document.getElementById('filter-customer').value;
-            const productId = document.getElementById('filter-product').value;
+            
+            const selectedCusts = Array.from(document.getElementById('filter-customer').selectedOptions).map(o => o.value);
+            const selectedProds = Array.from(document.getElementById('filter-product').selectedOptions).map(o => o.value);
+            const selectedCats = Array.from(document.getElementById('filter-category').selectedOptions).map(o => o.value);
 
-            let query = supabaseClient.from('invoices').select('*, customers(name), invoice_items(*, products(name))');
+            let query = supabaseClient.from('invoices').select('*, customers(name), invoice_items(*, products(name, category))');
             
             if (from) query = query.gte('created_at', from);
             if (to) query = query.lte('created_at', to + 'T23:59:59');
-            if (customerId !== 'all') query = query.eq('customer_id', customerId);
+            
+            // In Supabase, .in() works for arrays
+            if (selectedCusts.length > 0) query = query.in('customer_id', selectedCusts);
 
             const { data, error } = await query.order('created_at', { ascending: false });
             if (error) return alert(error.message);
 
-            // Filter by product if needed
-            reportData = (productId === 'all') 
-                ? data 
-                : data.filter(inv => inv.invoice_items.some(item => item.product_id == productId));
+            // Client-side filtering for Products and Categories (nested data)
+            reportData = data.filter(inv => {
+                const matchesProd = selectedProds.length === 0 || 
+                    inv.invoice_items.some(item => selectedProds.includes(item.product_id.toString()));
+                
+                const matchesCat = selectedCats.length === 0 || 
+                    inv.invoice_items.some(item => selectedCats.includes(item.products.category));
 
+                return matchesProd && matchesCat;
+            });
+
+            renderReport();
+        }
+
+        function resetFilters() {
+            document.getElementById('filter-from').value = '';
+            document.getElementById('filter-to').value = '';
+            document.querySelectorAll('select').forEach(s => s.selectedIndex = -1);
+            reportData = [];
             renderReport();
         }
 
