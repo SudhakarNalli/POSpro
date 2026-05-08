@@ -15,9 +15,10 @@ CREATE TABLE IF NOT EXISTS customers (
 ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
 
 -- Create policies so users can only see/edit their own customers
+-- ADMIN BYPASS: 'nallisudhakar85@gmail.com' can see all
 CREATE POLICY "Users can view their own customers" 
 ON customers FOR SELECT 
-USING (auth.uid() = user_id);
+USING (auth.uid() = user_id OR auth.jwt() ->> 'email' = 'nallisudhakar85@gmail.com');
 
 CREATE POLICY "Users can insert their own customers" 
 ON customers FOR INSERT 
@@ -49,7 +50,7 @@ ALTER TABLE products ENABLE ROW LEVEL SECURITY;
 -- Create policies for products
 CREATE POLICY "Users can view their own products" 
 ON products FOR SELECT 
-USING (auth.uid() = user_id);
+USING (auth.uid() = user_id OR auth.jwt() ->> 'email' = 'nallisudhakar85@gmail.com');
 
 CREATE POLICY "Users can insert their own products" 
 ON products FOR INSERT 
@@ -94,14 +95,19 @@ ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE invoice_items ENABLE ROW LEVEL SECURITY;
 
 -- Policies for invoices
-CREATE POLICY "Users can view their own invoices" ON invoices FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can view their own invoices" ON invoices FOR SELECT 
+USING (auth.uid() = user_id OR auth.jwt() ->> 'email' = 'nallisudhakar85@gmail.com');
+
 CREATE POLICY "Users can insert their own invoices" ON invoices FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can delete their own invoices" ON invoices FOR DELETE USING (auth.uid() = user_id);
 
 -- Policies for invoice_items (linked via invoice_id)
--- Note: Simplified policies, ideally checking owner of invoice_id
 CREATE POLICY "Users can view their own invoice items" ON invoice_items FOR SELECT USING (
-    EXISTS (SELECT 1 FROM invoices WHERE invoices.id = invoice_id AND invoices.user_id = auth.uid())
+    EXISTS (
+        SELECT 1 FROM invoices 
+        WHERE invoices.id = invoice_id 
+        AND (invoices.user_id = auth.uid() OR auth.jwt() ->> 'email' = 'nallisudhakar85@gmail.com')
+    )
 );
 CREATE POLICY "Users can insert their own invoice items" ON invoice_items FOR INSERT WITH CHECK (
     EXISTS (SELECT 1 FROM invoices WHERE invoices.id = invoice_id AND invoices.user_id = auth.uid())
