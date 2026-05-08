@@ -190,7 +190,7 @@
             <a href="invoices.html" class="nav-link">Invoices</a>
             <a href="reports.html" class="nav-link active">Reports</a>
         </div>
-        <button class="btn btn-ghost" onclick="logout()">Logout</button>
+        <button class="btn btn-ghost" id="logout-btn">Logout</button>
     </nav>
 
     <main>
@@ -478,7 +478,7 @@
             doc.save("POSpro_Sales_Report.pdf");
         }
 
-        async function logout() { await supabaseClient.auth.signOut(); window.location.href = 'login.html'; }
+        document.getElementById('logout-btn').onclick = async () => { await supabaseClient.auth.signOut(); window.location.href = 'login.html'; };
         init();
     </script>
 </body>
