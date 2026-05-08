@@ -262,6 +262,7 @@
                         <th>Inv #</th>
                         <th>Customer</th>
                         <th>Items</th>
+                        <th>Qty</th>
                         <th>Tax</th>
                         <th>Total</th>
                     </tr>
@@ -418,6 +419,7 @@
                 totalRev += parseFloat(inv.total_amount);
                 totalTax += parseFloat(inv.tax_amount);
                 
+                const totalQty = inv.invoice_items.reduce((sum, it) => sum + it.quantity, 0);
                 const itemsStr = inv.invoice_items.map(it => `${it.products.name} (x${it.quantity})`).join(', ');
 
                 tbody.innerHTML += `
@@ -426,6 +428,7 @@
                         <td>#${inv.id}</td>
                         <td>${inv.customers?.name || 'Walk-in'}</td>
                         <td style="font-size: 0.8rem; color: var(--text-muted); max-width: 300px;">${itemsStr}</td>
+                        <td>${totalQty}</td>
                         <td>₹${parseFloat(inv.tax_amount).toFixed(2)}</td>
                         <td style="font-weight: 700; color: var(--primary);">₹${parseFloat(inv.total_amount).toFixed(2)}</td>
                     </tr>
@@ -443,6 +446,8 @@
                 Date: new Date(inv.created_at).toLocaleDateString(),
                 Invoice: inv.id,
                 Customer: inv.customers?.name,
+                Items: inv.invoice_items.map(it => `${it.products.name} (x${it.quantity})`).join(', '),
+                Quantity: inv.invoice_items.reduce((sum, it) => sum + it.quantity, 0),
                 Subtotal: inv.subtotal,
                 Tax: inv.tax_amount,
                 Total: inv.total_amount
@@ -459,11 +464,12 @@
             doc.text("Sales Analysis Report", 14, 15);
             doc.autoTable({
                 startY: 20,
-                head: [['Date', 'Inv #', 'Customer', 'Tax', 'Total']],
+                head: [['Date', 'Inv #', 'Customer', 'Qty', 'Tax', 'Total']],
                 body: reportData.map(inv => [
                     new Date(inv.created_at).toLocaleDateString(),
                     inv.id,
                     inv.customers?.name,
+                    inv.invoice_items.reduce((sum, it) => sum + it.quantity, 0),
                     `₹${inv.tax_amount}`,
                     `₹${inv.total_amount}`
                 ]),
