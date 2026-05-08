@@ -102,6 +102,10 @@
     <main>
         <div class="header-section">
             <h1>Invoices</h1>
+            <div id="bulk-actions" style="display: none; gap: 1rem;">
+                <button class="btn btn-danger" onclick="deleteSelected()">Delete Selected</button>
+                <button class="btn btn-primary" onclick="printSelected()">Print Selected</button>
+            </div>
             <button class="btn btn-primary" onclick="openInvoiceModal()">New Invoice</button>
         </div>
 
@@ -109,6 +113,7 @@
             <table>
                 <thead>
                     <tr>
+                        <th style="width: 40px;"><input type="checkbox" id="select-all" onclick="toggleAll()"></th>
                         <th>Inv #</th>
                         <th>Date</th>
                         <th>Customer</th>
@@ -230,6 +235,7 @@
             data?.forEach(inv => {
                 tbody.innerHTML += `
                     <tr>
+                        <td><input type="checkbox" class="inv-check" value="${inv.id}" onclick="updateBulkBar()"></td>
                         <td>#${inv.id}</td>
                         <td>${new Date(inv.created_at).toLocaleDateString()}</td>
                         <td>${inv.customers?.name || 'Unknown'}</td>
@@ -242,6 +248,73 @@
                     </tr>
                 `;
             });
+        }
+
+        function toggleAll() {
+            const checked = document.getElementById('select-all').checked;
+            document.querySelectorAll('.inv-check').forEach(cb => cb.checked = checked);
+            updateBulkBar();
+        }
+
+        function updateBulkBar() {
+            const checkedCount = document.querySelectorAll('.inv-check:checked').length;
+            document.getElementById('bulk-actions').style.display = checkedCount > 0 ? 'flex' : 'none';
+        }
+
+        async function deleteSelected() {
+            const ids = Array.from(document.querySelectorAll('.inv-check:checked')).map(cb => cb.value);
+            if (!confirm(`Delete ${ids.length} invoices?`)) return;
+            await supabaseClient.from('invoices').delete().in('id', ids);
+            showToast('Selected invoices deleted');
+            loadInvoices();
+            updateBulkBar();
+        }
+
+        async function printSelected() {
+            const ids = Array.from(document.querySelectorAll('.inv-check:checked')).map(cb => cb.value);
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            for (let i = 0; i < ids.length; i++) {
+                if (i > 0) doc.addPage();
+                await generateInvoicePage(doc, ids[i]);
+            }
+            doc.save(`Bulk_Invoices_${new Date().getTime()}.pdf`);
+        }
+
+        async function generateInvoicePage(doc, invId) {
+            const { data: inv } = await supabaseClient.from('invoices').select('*, customers(*)').eq('id', invId).single();
+            const { data: items } = await supabaseClient.from('invoice_items').select('*, products(*)').eq('invoice_id', invId);
+            
+            const brandColor = [255, 153, 51];
+            const textColor = [30, 41, 59];
+            const lightTextColor = [100, 116, 139];
+
+            doc.setFillColor(...brandColor); doc.rect(0, 0, 210, 40, 'F');
+            doc.setFont("helvetica", "bold"); doc.setFontSize(28); doc.setTextColor(255, 255, 255); doc.text("POSpro", 15, 25);
+            doc.setFontSize(10); doc.setFont("helvetica", "normal"); doc.text("MODERN BUSINESS SOLUTIONS", 15, 32);
+            doc.setFontSize(20); doc.text("TAX INVOICE", 140, 25);
+
+            doc.setTextColor(...textColor); doc.setFontSize(10); doc.setFont("helvetica", "bold");
+            doc.text("Invoice Details:", 140, 55);
+            doc.setFont("helvetica", "normal"); doc.text(`Invoice #: ${invId}`, 140, 62);
+            doc.text(`Date: ${new Date(inv.created_at).toLocaleDateString()}`, 140, 67);
+
+            doc.setFont("helvetica", "bold"); doc.text("BILL TO:", 15, 55);
+            doc.setFont("helvetica", "normal"); doc.setFontSize(12); doc.text(`${inv.customers.name}`, 15, 62);
+            doc.setFontSize(10); doc.setTextColor(...lightTextColor);
+            doc.text(`GSTIN: ${inv.customers.gst_number || 'N/A'}`, 15, 68);
+
+            doc.autoTable({
+                startY: 85,
+                head: [['Item', 'Price', 'Qty', 'Total']],
+                body: items.map(it => [it.products.name, it.unit_price, it.quantity, it.total_price]),
+                theme: 'grid',
+                headStyles: { fillColor: brandColor }
+            });
+
+            const finalY = doc.lastAutoTable.finalY + 10;
+            doc.text(`Total Payable: INR ${parseFloat(inv.total_amount).toFixed(2)}`, 140, finalY, { align: 'left' });
         }
 
         function openInvoiceModal() { 
