@@ -284,7 +284,17 @@
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (!session) return window.location.href = 'login.html';
             document.body.classList.add('authenticated');
-            loadFilters();
+            
+            // Set default dates: 1st of month to today
+            const now = new Date();
+            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+            const today = now.toISOString().split('T')[0];
+            
+            document.getElementById('filter-from').value = firstDay;
+            document.getElementById('filter-to').value = today;
+
+            await loadFilters();
+            generateReport(); // Auto-generate for current month
         }
 
         async function loadFilters() {
