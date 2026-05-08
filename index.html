@@ -32,9 +32,13 @@
                 radial-gradient(circle at 80% 70%, rgba(255, 94, 58, 0.05) 0%, transparent 40%);
             color: var(--text-main);
             min-height: 100vh;
-            display: flex;
+            display: none;
             flex-direction: column;
             overflow-x: hidden;
+        }
+        
+        body.authenticated {
+            display: flex;
         }
 
         /* Glassmorphism Navbar */
@@ -342,11 +346,18 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzZnR0YXNncmNud25leW9ycnNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMjU2MDYsImV4cCI6MjA5MzgwMTYwNn0.GGS6HPrHVdZeq2jUEPaXDwkw8IMwfiTrZ3s6hys0FgA';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        async function checkUser() {
-            const { data: { user } } = await supabaseClient.auth.getUser();
-            const authBtn = document.getElementById('auth-nav-btn');
+        async function protectPage() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) {
+                window.location.href = 'login.html';
+                return;
+            }
             
-            if (user) {
+            // Show page content
+            document.body.classList.add('authenticated');
+            
+            const authBtn = document.getElementById('auth-nav-btn');
+            if (authBtn) {
                 authBtn.innerText = 'Logout';
                 authBtn.href = '#';
                 authBtn.onclick = async () => {
@@ -355,7 +366,8 @@
                 };
             }
         }
-        checkUser();
+        
+        protectPage();
     </script>
 </body>
 
