@@ -420,7 +420,7 @@
                 totalTax += parseFloat(inv.tax_amount);
                 
                 const totalQty = inv.invoice_items.reduce((sum, it) => sum + it.quantity, 0);
-                const itemsStr = inv.invoice_items.map(it => `${it.products.name} (x${it.quantity})`).join(', ');
+                const itemsStr = inv.invoice_items.map(it => it.products.name).join(', ');
 
                 tbody.innerHTML += `
                     <tr>
@@ -446,7 +446,7 @@
                 Date: new Date(inv.created_at).toLocaleDateString(),
                 Invoice: inv.id,
                 Customer: inv.customers?.name,
-                Items: inv.invoice_items.map(it => `${it.products.name} (x${it.quantity})`).join(', '),
+                Items: inv.invoice_items.map(it => it.products.name).join(', '),
                 Quantity: inv.invoice_items.reduce((sum, it) => sum + it.quantity, 0),
                 Subtotal: inv.subtotal,
                 Tax: inv.tax_amount,
