@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Customers | POSpro</title>
+    <title>Products | POSpro</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -19,6 +19,7 @@
             --text-muted: #94a3b8;
             --accent-gradient: linear-gradient(135deg, #ff9933 0%, #ff5e3a 100%);
             --danger: #ef4444;
+            --success: #22c55e;
         }
 
         * {
@@ -105,7 +106,7 @@
         }
 
         .bulk-actions {
-            display: none; /* Shown when items selected */
+            display: none;
             gap: 1rem;
             margin-right: 1rem;
             padding-right: 1rem;
@@ -142,7 +143,35 @@
             box-shadow: 0 15px 30px -10px var(--primary-glow);
         }
 
-        /* Table/List Styles */
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .btn-danger:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-success {
+            background: rgba(34, 197, 94, 0.1);
+            color: #22c55e;
+            border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+
+        .btn-success:hover {
+            background: #22c55e;
+            color: white;
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Table Styles */
         .card-container {
             background: var(--bg-card);
             backdrop-filter: blur(20px);
@@ -171,14 +200,6 @@
             padding: 1.25rem 1.5rem;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
             color: var(--text-main);
-        }
-
-        tr:last-child td {
-            border-bottom: none;
-        }
-
-        tr:hover td {
-            background: rgba(255, 255, 255, 0.02);
         }
 
         .actions {
@@ -224,26 +245,18 @@
             border-radius: 24px;
             border: 1px solid rgba(255, 255, 255, 0.1);
             padding: 3rem;
-            position: relative;
-        }
-
-        .modal-header {
-            margin-bottom: 2rem;
         }
 
         .modal-header h2 {
             font-size: 1.75rem;
             color: var(--primary);
+            margin-bottom: 2rem;
         }
 
         .form-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 1.5rem;
-        }
-
-        .form-group {
-            margin-bottom: 1.5rem;
         }
 
         .form-group.full-width {
@@ -257,7 +270,7 @@
             margin-bottom: 0.5rem;
         }
 
-        input, textarea {
+        input {
             width: 100%;
             padding: 0.75rem 1rem;
             background: rgba(15, 23, 42, 0.8);
@@ -267,47 +280,11 @@
             font-family: inherit;
         }
 
-        input:focus, textarea:focus {
-            outline: none;
-            border-color: var(--primary);
-        }
-
         .modal-footer {
             margin-top: 2rem;
             display: flex;
             justify-content: flex-end;
             gap: 1rem;
-        }
-
-        .btn-danger {
-            background: rgba(239, 68, 68, 0.1);
-            color: var(--danger);
-            border: 1px solid rgba(239, 68, 68, 0.2);
-        }
-
-        .btn-danger:hover {
-            background: var(--danger);
-            color: white;
-        }
-
-        .btn-success {
-            background: rgba(34, 197, 94, 0.1);
-            color: #22c55e;
-            border: 1px solid rgba(34, 197, 94, 0.2);
-        }
-
-        .btn-success:hover {
-            background: #22c55e;
-            color: white;
-        }
-            background: transparent;
-            color: var(--text-muted);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .btn-ghost:hover {
-            background: rgba(255, 255, 255, 0.05);
-            color: white;
         }
 
         /* Toast */
@@ -321,18 +298,25 @@
             color: white;
             padding: 1rem 2rem;
             border-radius: 12px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
-            display: flex;
-            align-items: center;
-            gap: 1rem;
             transform: translateY(100px);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.4s ease;
             z-index: 3000;
         }
 
         .toast.show {
             transform: translateY(0);
         }
+
+        /* Stock Badge */
+        .stock-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .stock-low { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
+        .stock-ok { background: rgba(34, 197, 94, 0.1); color: var(--success); }
     </style>
 </head>
 <body>
@@ -340,8 +324,8 @@
         <a href="index.html" class="logo">POSpro</a>
         <div class="nav-links">
             <a href="index.html" class="nav-link">Dashboard</a>
-            <a href="customers.html" class="nav-link active">Customers</a>
-            <a href="products.html" class="nav-link">Products</a>
+            <a href="customers.html" class="nav-link">Customers</a>
+            <a href="products.html" class="nav-link active">Products</a>
             <a href="#" class="nav-link">Invoices</a>
         </div>
         <button class="btn btn-ghost" id="logout-btn">Logout</button>
@@ -349,7 +333,7 @@
 
     <main>
         <div class="header-section">
-            <h1>Customer Management</h1>
+            <h1>Product Inventory</h1>
             <div class="header-actions">
                 <div id="bulk-actions" class="bulk-actions">
                     <button class="btn btn-danger" onclick="bulkDelete()">Delete Selected</button>
@@ -358,64 +342,59 @@
                 </div>
                 <button class="btn btn-primary" onclick="openModal()">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                    Add Customer
+                    Add Product
                 </button>
             </div>
         </div>
 
         <div class="card-container">
-            <table id="customers-table">
+            <table id="products-table">
                 <thead>
                     <tr>
                         <th style="width: 40px;"><input type="checkbox" id="select-all" onclick="toggleSelectAll()"></th>
-                        <th>Name</th>
-                        <th>Mobile</th>
-                        <th>Email</th>
-                        <th>GST Number</th>
-                        <th>Address</th>
+                        <th>Product Name</th>
+                        <th>Category</th>
+                        <th>Price (₹)</th>
+                        <th>Stock</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
-                <tbody id="customers-body">
+                <tbody id="products-body">
                     <!-- Loaded dynamically -->
                 </tbody>
             </table>
         </div>
     </main>
 
-    <!-- Customer Modal -->
-    <div id="customer-modal" class="modal-overlay">
+    <!-- Product Modal -->
+    <div id="product-modal" class="modal-overlay">
         <div class="modal">
             <div class="modal-header">
-                <h2 id="modal-title">Add New Customer</h2>
+                <h2 id="modal-title">Add New Product</h2>
             </div>
-            <form id="customer-form">
-                <input type="hidden" id="customer-id">
+            <form id="product-form">
+                <input type="hidden" id="product-id">
                 <div class="form-grid">
-                    <div class="form-group">
-                        <label for="name">Customer Name *</label>
-                        <input type="text" id="name" required placeholder="John Doe">
+                    <div class="form-group full-width">
+                        <label for="name">Product Name *</label>
+                        <input type="text" id="name" required placeholder="e.g. Wireless Mouse">
                     </div>
                     <div class="form-group">
-                        <label for="phone">Mobile Number</label>
-                        <input type="text" id="phone" placeholder="+91 00000 00000">
+                        <label for="category">Category</label>
+                        <input type="text" id="category" placeholder="e.g. Electronics">
                     </div>
                     <div class="form-group">
-                        <label for="email">Email Address</label>
-                        <input type="email" id="email" placeholder="john@example.com">
-                    </div>
-                    <div class="form-group">
-                        <label for="gst">GST Number</label>
-                        <input type="text" id="gst" placeholder="22AAAAA0000A1Z5">
+                        <label for="price">Price (₹)</label>
+                        <input type="number" id="price" step="0.01" required placeholder="0.00">
                     </div>
                     <div class="form-group full-width">
-                        <label for="address">Full Address</label>
-                        <textarea id="address" rows="3" placeholder="123 Street, City, State, ZIP"></textarea>
+                        <label for="stock">Current Stock</label>
+                        <input type="number" id="stock" required placeholder="0">
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save Customer</button>
+                    <button type="submit" class="btn btn-primary">Save Product</button>
                 </div>
             </form>
         </div>
@@ -432,7 +411,6 @@
 
         let currentUser = null;
 
-        // Auth Protection
         async function checkAuth() {
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (!session) {
@@ -441,7 +419,7 @@
             }
             currentUser = session.user;
             document.body.classList.add('authenticated');
-            loadCustomers();
+            loadProducts();
         }
 
         document.getElementById('logout-btn').onclick = async () => {
@@ -449,63 +427,48 @@
             window.location.href = 'login.html';
         };
 
-        // Modal Controls
-        function openModal(customer = null) {
-            const modal = document.getElementById('customer-modal');
-            const title = document.getElementById('modal-title');
-            const form = document.getElementById('customer-form');
-            
+        function openModal(product = null) {
+            const modal = document.getElementById('product-modal');
+            const form = document.getElementById('product-form');
             form.reset();
-            document.getElementById('customer-id').value = '';
+            document.getElementById('product-id').value = '';
 
-            if (customer) {
-                title.innerText = 'Edit Customer';
-                document.getElementById('customer-id').value = customer.id;
-                document.getElementById('name').value = customer.name;
-                document.getElementById('phone').value = customer.phone;
-                document.getElementById('email').value = customer.email;
-                document.getElementById('gst').value = customer.gst_number;
-                document.getElementById('address').value = customer.address;
+            if (product) {
+                document.getElementById('modal-title').innerText = 'Edit Product';
+                document.getElementById('product-id').value = product.id;
+                document.getElementById('name').value = product.name;
+                document.getElementById('category').value = product.category;
+                document.getElementById('price').value = product.price;
+                document.getElementById('stock').value = product.stock;
             } else {
-                title.innerText = 'Add New Customer';
+                document.getElementById('modal-title').innerText = 'Add New Product';
             }
-            
             modal.style.display = 'flex';
         }
 
-        function closeModal() {
-            document.getElementById('customer-modal').style.display = 'none';
-        }
+        function closeModal() { document.getElementById('product-modal').style.display = 'none'; }
 
-        // CRUD Operations
-        async function loadCustomers() {
-            const { data, error } = await supabaseClient
-                .from('customers')
-                .select('*')
-                .order('created_at', { ascending: false });
+        async function loadProducts() {
+            const { data, error } = await supabaseClient.from('products').select('*').order('created_at', { ascending: false });
+            if (error) return console.error(error);
 
-            if (error) {
-                console.error('Error loading customers:', error);
-                return;
-            }
-
-            const tbody = document.getElementById('customers-body');
+            const tbody = document.getElementById('products-body');
             tbody.innerHTML = '';
 
-            data.forEach(c => {
+            data.forEach(p => {
                 const tr = document.createElement('tr');
+                const stockClass = p.stock < 10 ? 'stock-low' : 'stock-ok';
                 tr.innerHTML = `
-                    <td><input type="checkbox" class="customer-checkbox" value="${c.id}" onclick="updateBulkActions()"></td>
-                    <td>${c.name}</td>
-                    <td>${c.phone || '-'}</td>
-                    <td>${c.email || '-'}</td>
-                    <td>${c.gst_number || '-'}</td>
-                    <td>${c.address || '-'}</td>
+                    <td><input type="checkbox" class="product-checkbox" value="${p.id}" onclick="updateBulkActions()"></td>
+                    <td>${p.name}</td>
+                    <td>${p.category || '-'}</td>
+                    <td>₹${parseFloat(p.price).toFixed(2)}</td>
+                    <td><span class="stock-badge ${stockClass}">${p.stock} units</span></td>
                     <td class="actions">
-                        <button class="action-btn" onclick='editCustomer(${JSON.stringify(c)})'>
+                        <button class="action-btn" onclick='editProduct(${JSON.stringify(p)})'>
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                         </button>
-                        <button class="action-btn delete" onclick="deleteCustomer(${c.id})">
+                        <button class="action-btn delete" onclick="deleteProduct(${p.id})">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                         </button>
                     </td>
@@ -515,99 +478,80 @@
             updateBulkActions();
         }
 
+        window.editProduct = (p) => openModal(p);
+
+        document.getElementById('product-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('product-id').value;
+            const productData = {
+                name: document.getElementById('name').value,
+                category: document.getElementById('category').value,
+                price: parseFloat(document.getElementById('price').value),
+                stock: parseInt(document.getElementById('stock').value),
+                user_id: currentUser.id
+            };
+
+            let res;
+            if (id) res = await supabaseClient.from('products').update(productData).eq('id', id);
+            else res = await supabaseClient.from('products').insert([productData]);
+
+            if (res.error) {
+                if (res.error.code === '23505') showToast('Error: Product name already exists.');
+                else showToast('Error: ' + res.error.message);
+            } else {
+                showToast(id ? 'Product updated!' : 'Product added!');
+                closeModal();
+                loadProducts();
+            }
+        };
+
+        async function deleteProduct(id) {
+            if (!confirm('Delete this product?')) return;
+            const { error } = await supabaseClient.from('products').delete().eq('id', id);
+            if (error) showToast(error.message);
+            else { showToast('Product deleted'); loadProducts(); }
+        }
+
         function toggleSelectAll() {
-            const allChecked = document.getElementById('select-all').checked;
-            document.querySelectorAll('.customer-checkbox').forEach(cb => cb.checked = allChecked);
+            const checked = document.getElementById('select-all').checked;
+            document.querySelectorAll('.product-checkbox').forEach(cb => cb.checked = checked);
             updateBulkActions();
         }
 
         function updateBulkActions() {
-            const selected = document.querySelectorAll('.customer-checkbox:checked').length;
+            const selected = document.querySelectorAll('.product-checkbox:checked').length;
             document.getElementById('bulk-actions').style.display = selected > 0 ? 'flex' : 'none';
         }
 
         async function bulkDelete() {
-            const ids = Array.from(document.querySelectorAll('.customer-checkbox:checked')).map(cb => cb.value);
-            if (!confirm(`Delete ${ids.length} selected customers?`)) return;
-
-            const { error } = await supabaseClient.from('customers').delete().in('id', ids);
-            if (error) {
-                showToast('Error: ' + error.message);
-            } else {
-                showToast(`${ids.length} customers deleted`);
-                loadCustomers();
-            }
+            const ids = Array.from(document.querySelectorAll('.product-checkbox:checked')).map(cb => cb.value);
+            if (!confirm(`Delete ${ids.length} products?`)) return;
+            const { error } = await supabaseClient.from('products').delete().in('id', ids);
+            if (error) showToast(error.message);
+            else { showToast(`${ids.length} products deleted`); loadProducts(); }
         }
 
-        // Export Functions
         async function exportExcel() {
-            const { data } = await supabaseClient.from('customers').select('name, phone, email, gst_number, address');
+            const { data } = await supabaseClient.from('products').select('name, category, price, stock');
             const ws = XLSX.utils.json_to_sheet(data);
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Customers");
-            XLSX.writeFile(wb, "POSpro_Customers.xlsx");
+            XLSX.utils.book_append_sheet(wb, ws, "Products");
+            XLSX.writeFile(wb, "POSpro_Products.xlsx");
         }
 
         async function exportPDF() {
-            const { data } = await supabaseClient.from('customers').select('name, phone, email, gst_number, address');
+            const { data } = await supabaseClient.from('products').select('name, category, price, stock');
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            
-            doc.text("Customer Management List", 14, 15);
+            doc.text("Product Inventory List", 14, 15);
             doc.autoTable({
                 startY: 20,
-                head: [['Name', 'Phone', 'Email', 'GST', 'Address']],
-                body: data.map(c => [c.name, c.phone, c.email, c.gst_number, c.address]),
+                head: [['Name', 'Category', 'Price', 'Stock']],
+                body: data.map(p => [p.name, p.category, p.price, p.stock]),
                 theme: 'grid',
                 headStyles: { fillColor: [255, 153, 51] }
             });
-            doc.save("POSpro_Customers.pdf");
-        }
-
-        window.editCustomer = (customer) => openModal(customer);
-
-        document.getElementById('customer-form').onsubmit = async (e) => {
-            e.preventDefault();
-            const id = document.getElementById('customer-id').value;
-            const customerData = {
-                name: document.getElementById('name').value,
-                phone: document.getElementById('phone').value,
-                email: document.getElementById('email').value,
-                gst_number: document.getElementById('gst').value,
-                address: document.getElementById('address').value,
-                user_id: currentUser.id
-            };
-
-            let result;
-            if (id) {
-                result = await supabaseClient.from('customers').update(customerData).eq('id', id);
-            } else {
-                result = await supabaseClient.from('customers').insert([customerData]);
-            }
-
-            if (result.error) {
-                if (result.error.code === '23505') {
-                    showToast('Error: A customer with this Name, Mobile, or GST already exists.');
-                } else {
-                    showToast('Error: ' + result.error.message);
-                }
-            } else {
-                showToast(id ? 'Customer updated!' : 'Customer added!');
-                closeModal();
-                loadCustomers();
-            }
-        };
-
-        async function deleteCustomer(id) {
-            if (!confirm('Are you sure you want to delete this customer?')) return;
-            
-            const { error } = await supabaseClient.from('customers').delete().eq('id', id);
-            if (error) {
-                showToast('Error: ' + error.message);
-            } else {
-                showToast('Customer deleted');
-                loadCustomers();
-            }
+            doc.save("POSpro_Products.pdf");
         }
 
         function showToast(msg) {
