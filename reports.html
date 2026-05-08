@@ -202,11 +202,14 @@
             </div>
         </div>
 
-        <div class="filter-section" style="grid-template-columns: 120px 1fr 1fr 1fr 150px; overflow: visible;">
-            <div class="form-group" style="gap: 0.25rem;">
+        <div class="filter-section" style="grid-template-columns: 280px 1fr 1fr 1fr 220px; overflow: visible; align-items: flex-end;">
+            <div class="form-group">
                 <label style="font-size: 0.7rem;">Date Range</label>
-                <input type="date" id="filter-from" style="padding: 0.4rem; font-size: 0.75rem;">
-                <input type="date" id="filter-to" style="padding: 0.4rem; font-size: 0.75rem;">
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <input type="date" id="filter-from" style="padding: 0.5rem; font-size: 0.75rem; flex: 1;">
+                    <span style="color: var(--text-muted); font-size: 0.7rem;">to</span>
+                    <input type="date" id="filter-to" style="padding: 0.5rem; font-size: 0.75rem; flex: 1;">
+                </div>
             </div>
             <div class="form-group">
                 <label>Categories</label>
@@ -229,9 +232,9 @@
                     <div id="filter-customer" class="multi-select-options"></div>
                 </div>
             </div>
-            <div class="form-group" style="gap: 0.5rem;">
-                <button class="btn btn-primary" onclick="generateReport()" style="padding: 0.6rem; font-size: 0.85rem;">Generate</button>
-                <button class="btn btn-ghost" onclick="resetFilters()" style="padding: 0.6rem; font-size: 0.8rem;">Reset</button>
+            <div class="form-group" style="flex-direction: row; gap: 0.5rem;">
+                <button class="btn btn-primary" onclick="generateReport()" style="padding: 0.75rem; font-size: 0.85rem; flex: 1;">Generate</button>
+                <button class="btn btn-ghost" onclick="resetFilters()" style="padding: 0.75rem; font-size: 0.8rem; flex: 1;">Reset</button>
             </div>
         </div>
         <p style="margin-top: -1.5rem; margin-bottom: 2rem; font-size: 0.7rem; color: var(--text-muted);">* Select multiple options using checkboxes</p>
