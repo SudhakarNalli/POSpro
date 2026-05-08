@@ -172,7 +172,8 @@
 
                         <div class="summary-row"><span>Subtotal</span><span id="sum-subtotal">₹0.00</span></div>
                         <div class="summary-row"><span>Discount</span><span id="sum-discount">₹0.00</span></div>
-                        <div class="summary-row"><span>GST Amount</span><span id="sum-tax">₹0.00</span></div>
+                        <div class="summary-row"><span>CGST</span><span id="sum-cgst">₹0.00</span></div>
+                        <div class="summary-row"><span>SGST</span><span id="sum-sgst">₹0.00</span></div>
                         <div class="summary-row total"><span>Total Payable</span><span id="sum-total">₹0.00</span></div>
 
                         <button class="btn btn-primary" style="width: 100%; margin-top: 2rem;" onclick="saveInvoice()">Generate & Save</button>
@@ -291,11 +292,14 @@
             const discAmt = subtotal * (discPercent / 100);
             const taxableAmt = subtotal - discAmt;
             const taxAmt = taxableAmt * (taxPercent / 100);
+            const cgstAmt = taxAmt / 2;
+            const sgstAmt = taxAmt / 2;
             const total = taxableAmt + taxAmt;
 
             document.getElementById('sum-subtotal').innerText = `₹${subtotal.toFixed(2)}`;
             document.getElementById('sum-discount').innerText = `- ₹${discAmt.toFixed(2)}`;
-            document.getElementById('sum-tax').innerText = `+ ₹${taxAmt.toFixed(2)}`;
+            document.getElementById('sum-cgst').innerText = `+ ₹${cgstAmt.toFixed(2)}`;
+            document.getElementById('sum-sgst').innerText = `+ ₹${sgstAmt.toFixed(2)}`;
             document.getElementById('sum-total').innerText = `₹${total.toFixed(2)}`;
         }
 
@@ -308,6 +312,8 @@
             const taxPercent = parseFloat(document.getElementById('inv-tax-input').value) || 0;
             const discAmt = subtotal * (discPercent / 100);
             const taxAmt = (subtotal - discAmt) * (taxPercent / 100);
+            const cgstAmt = taxAmt / 2;
+            const sgstAmt = taxAmt / 2;
             const total = (subtotal - discAmt) + taxAmt;
 
             const { data, error } = await supabaseClient.from('invoices').insert([{
@@ -317,6 +323,8 @@
                 discount_amount: discAmt,
                 tax_percent: taxPercent,
                 tax_amount: taxAmt,
+                cgst_amount: cgstAmt,
+                sgst_amount: sgstAmt,
                 total_amount: total,
                 user_id: currentUser.id
             }]).select();
@@ -374,9 +382,10 @@
             const finalY = doc.lastAutoTable.finalY + 10;
             doc.text(`Subtotal: ₹${parseFloat(inv.subtotal).toFixed(2)}`, 140, finalY);
             doc.text(`Discount (${inv.discount_percent}%): - ₹${parseFloat(inv.discount_amount).toFixed(2)}`, 140, finalY + 7);
-            doc.text(`GST (${inv.tax_percent}%): + ₹${parseFloat(inv.tax_amount).toFixed(2)}`, 140, finalY + 14);
+            doc.text(`CGST (${inv.tax_percent / 2}%): + ₹${parseFloat(inv.cgst_amount).toFixed(2)}`, 140, finalY + 14);
+            doc.text(`SGST (${inv.tax_percent / 2}%): + ₹${parseFloat(inv.sgst_amount).toFixed(2)}`, 140, finalY + 21);
             doc.setFontSize(14); doc.setFont(undefined, 'bold');
-            doc.text(`Total Payable: ₹${parseFloat(inv.total_amount).toFixed(2)}`, 140, finalY + 25);
+            doc.text(`Total Payable: ₹${parseFloat(inv.total_amount).toFixed(2)}`, 140, finalY + 32);
 
             doc.save(`Invoice_${invId}.pdf`);
         }

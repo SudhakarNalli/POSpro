@@ -73,6 +73,8 @@ CREATE TABLE IF NOT EXISTS invoices (
     discount_amount DECIMAL(10, 2) NOT NULL DEFAULT 0,
     tax_percent DECIMAL(5, 2) NOT NULL DEFAULT 0,
     tax_amount DECIMAL(10, 2) NOT NULL DEFAULT 0,
+    cgst_amount DECIMAL(10, 2) NOT NULL DEFAULT 0,
+    sgst_amount DECIMAL(10, 2) NOT NULL DEFAULT 0,
     total_amount DECIMAL(10, 2) NOT NULL DEFAULT 0,
     user_id UUID REFERENCES auth.users(id)
 );
