@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoices | POSpro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        :root {
+            --primary: #ff9933;
+            --primary-glow: rgba(255, 153, 51, 0.4);
+            --bg-dark: #0f172a;
+            --bg-card: rgba(30, 41, 59, 0.7);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-gradient: linear-gradient(135deg, #ff9933 0%, #ff5e3a 100%);
+            --danger: #ef4444;
+            --success: #22c55e;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-dark);
+            background-image: radial-gradient(circle at 10% 10%, rgba(255, 153, 51, 0.05) 0%, transparent 40%), radial-gradient(circle at 90% 90%, rgba(255, 94, 58, 0.05) 0%, transparent 40%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: none;
+            flex-direction: column;
+        }
+        body.authenticated { display: flex; }
+
+        nav {
+            padding: 1.25rem 4rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .logo { font-size: 1.5rem; font-weight: 700; background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-decoration: none; }
+        .nav-links { display: flex; gap: 2.5rem; }
+        .nav-link { text-decoration: none; color: var(--text-muted); font-weight: 500; transition: color 0.3s ease; }
+        .nav-link:hover, .nav-link.active { color: var(--primary); }
+
+        main { flex: 1; padding: 3rem 4rem; max-width: 1400px; margin: 0 auto; width: 100%; }
+        .header-section { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3rem; }
+        .header-actions { display: flex; gap: 1rem; align-items: center; }
+
+        .btn { padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 0.5rem; border: none; text-decoration: none; font-family: inherit; }
+        .btn-primary { background: var(--accent-gradient); color: white; box-shadow: 0 10px 20px -10px var(--primary-glow); }
+        .btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .btn-danger { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); }
+
+        .card-container { background: var(--bg-card); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th { background: rgba(15, 23, 42, 0.5); padding: 1.25rem 1.5rem; color: var(--text-muted); font-weight: 600; font-size: 0.875rem; text-transform: uppercase; }
+        td { padding: 1.25rem 1.5rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+
+        /* Modal */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.9); backdrop-filter: blur(10px); display: none; align-items: center; justify-content: center; z-index: 2000; padding: 2rem; }
+        .modal { background: var(--bg-dark); width: 100%; max-width: 1000px; border-radius: 24px; border: 1px solid rgba(255, 255, 255, 0.1); padding: 2.5rem; max-height: 90vh; overflow-y: auto; }
+        
+        .invoice-form-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; }
+        .form-group { margin-bottom: 1.5rem; }
+        label { display: block; color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.5rem; }
+        select, input { width: 100%; padding: 0.75rem 1rem; background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; color: white; font-family: inherit; }
+        
+        .items-table { width: 100%; margin-top: 1rem; border-radius: 12px; overflow: hidden; }
+        .items-table th { font-size: 0.75rem; padding: 0.75rem; }
+        .items-table td { padding: 0.5rem; }
+        
+        .summary-card { background: rgba(255, 255, 255, 0.02); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.05); }
+        .summary-row { display: flex; justify-content: space-between; margin-bottom: 0.75rem; font-size: 0.9rem; }
+        .summary-row.total { font-size: 1.25rem; font-weight: 700; color: var(--primary); margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.1); }
+
+        .toast { position: fixed; bottom: 2rem; right: 2rem; background: rgba(30, 41, 59, 0.9); border: 1px solid var(--primary); color: white; padding: 1rem 2rem; border-radius: 12px; transform: translateY(100px); transition: all 0.4s ease; z-index: 3000; }
+        .toast.show { transform: translateY(0); }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="index.html" class="logo">POSpro</a>
+        <div class="nav-links">
+            <a href="index.html" class="nav-link">Dashboard</a>
+            <a href="customers.html" class="nav-link">Customers</a>
+            <a href="products.html" class="nav-link">Products</a>
+            <a href="invoices.html" class="nav-link active">Invoices</a>
+        </div>
+        <button class="btn btn-ghost" id="logout-btn">Logout</button>
+    </nav>
+
+    <main>
+        <div class="header-section">
+            <h1>Invoices</h1>
+            <button class="btn btn-primary" onclick="openInvoiceModal()">New Invoice</button>
+        </div>
+
+        <div class="card-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Inv #</th>
+                        <th>Date</th>
+                        <th>Customer</th>
+                        <th>Amount</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="invoices-body"></tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Invoice Modal -->
+    <div id="invoice-modal" class="modal-overlay">
+        <div class="modal">
+            <div class="header-section" style="margin-bottom: 2rem;">
+                <h2 style="color: var(--primary);">Generate New Invoice</h2>
+                <button class="btn btn-ghost" onclick="closeInvoiceModal()">Close</button>
+            </div>
+
+            <div class="invoice-form-grid">
+                <div class="left-panel">
+                    <div class="form-group">
+                        <label>Select Customer</label>
+                        <select id="inv-customer-select" required></select>
+                    </div>
+
+                    <div class="items-section">
+                        <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                            <select id="inv-product-select" style="flex: 2;"></select>
+                            <input type="number" id="inv-qty-input" placeholder="Qty" value="1" style="flex: 1;">
+                            <button class="btn btn-primary" onclick="addItem()">Add</button>
+                        </div>
+
+                        <div class="card-container">
+                            <table class="items-table">
+                                <thead>
+                                    <tr>
+                                        <th>Product</th>
+                                        <th>Price</th>
+                                        <th>Qty</th>
+                                        <th>Total</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="inv-items-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="right-panel">
+                    <div class="summary-card">
+                        <div class="form-group">
+                            <label>Discount (%)</label>
+                            <input type="number" id="inv-discount-input" value="0" oninput="calculateTotals()">
+                        </div>
+                        <div class="form-group">
+                            <label>Tax / GST (%)</label>
+                            <input type="number" id="inv-tax-input" value="18" oninput="calculateTotals()">
+                        </div>
+
+                        <div class="summary-row"><span>Subtotal</span><span id="sum-subtotal">₹0.00</span></div>
+                        <div class="summary-row"><span>Discount</span><span id="sum-discount">₹0.00</span></div>
+                        <div class="summary-row"><span>GST Amount</span><span id="sum-tax">₹0.00</span></div>
+                        <div class="summary-row total"><span>Total Payable</span><span id="sum-total">₹0.00</span></div>
+
+                        <button class="btn btn-primary" style="width: 100%; margin-top: 2rem;" onclick="saveInvoice()">Generate & Save</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"><div id="toast-msg"></div></div>
+
+    <script>
+        const SUPABASE_URL = 'https://esfttasgrcnwneyorrsq.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzZnR0YXNncmNud25leW9ycnNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMjU2MDYsImV4cCI6MjA5MzgwMTYwNn0.GGS6HPrHVdZeq2jUEPaXDwkw8IMwfiTrZ3s6hys0FgA';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let currentUser = null;
+        let invoiceItems = [];
+        let allProducts = [];
+        let allCustomers = [];
+
+        async function checkAuth() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) return window.location.href = 'login.html';
+            currentUser = session.user;
+            document.body.classList.add('authenticated');
+            loadInitialData();
+            loadInvoices();
+        }
+
+        async function loadInitialData() {
+            const [custRes, prodRes] = await Promise.all([
+                supabaseClient.from('customers').select('*'),
+                supabaseClient.from('products').select('*')
+            ]);
+            allCustomers = custRes.data || [];
+            allProducts = prodRes.data || [];
+
+            const custSelect = document.getElementById('inv-customer-select');
+            custSelect.innerHTML = '<option value="">Choose a customer...</option>';
+            allCustomers.forEach(c => custSelect.innerHTML += `<option value="${c.id}">${c.name} (${c.phone})</option>`);
+
+            const prodSelect = document.getElementById('inv-product-select');
+            prodSelect.innerHTML = '<option value="">Add a product...</option>';
+            allProducts.forEach(p => prodSelect.innerHTML += `<option value="${p.id}">${p.name} - ₹${p.price}</option>`);
+        }
+
+        async function loadInvoices() {
+            const { data } = await supabaseClient.from('invoices').select('*, customers(name)').order('created_at', { ascending: false });
+            const tbody = document.getElementById('invoices-body');
+            tbody.innerHTML = '';
+            data?.forEach(inv => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>#${inv.id}</td>
+                        <td>${new Date(inv.created_at).toLocaleDateString()}</td>
+                        <td>${inv.customers?.name || 'Unknown'}</td>
+                        <td style="font-weight: 700;">₹${parseFloat(inv.total_amount).toFixed(2)}</td>
+                        <td>
+                            <button class="btn btn-ghost" style="padding: 0.4rem 0.8rem;" onclick="viewPDF(${inv.id})">PDF</button>
+                            <button class="btn btn-danger" style="padding: 0.4rem 0.8rem;" onclick="deleteInvoice(${inv.id})">Delete</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function openInvoiceModal() { 
+            invoiceItems = []; 
+            document.getElementById('inv-items-body').innerHTML = '';
+            calculateTotals();
+            document.getElementById('invoice-modal').style.display = 'flex'; 
+        }
+        function closeInvoiceModal() { document.getElementById('invoice-modal').style.display = 'none'; }
+
+        function addItem() {
+            const prodId = document.getElementById('inv-product-select').value;
+            const qty = parseInt(document.getElementById('inv-qty-input').value);
+            if (!prodId || qty < 1) return;
+
+            const product = allProducts.find(p => p.id == prodId);
+            const existing = invoiceItems.find(item => item.id == prodId);
+            
+            if (existing) {
+                existing.qty += qty;
+            } else {
+                invoiceItems.push({ ...product, qty });
+            }
+            renderItems();
+        }
+
+        function renderItems() {
+            const tbody = document.getElementById('inv-items-body');
+            tbody.innerHTML = '';
+            invoiceItems.forEach((item, index) => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${item.name}</td>
+                        <td>₹${item.price}</td>
+                        <td>${item.qty}</td>
+                        <td>₹${(item.price * item.qty).toFixed(2)}</td>
+                        <td><button onclick="removeItem(${index})" style="color:red; background:none; border:none; cursor:pointer;">&times;</button></td>
+                    </tr>
+                `;
+            });
+            calculateTotals();
+        }
+
+        function removeItem(index) { invoiceItems.splice(index, 1); renderItems(); }
+
+        function calculateTotals() {
+            const subtotal = invoiceItems.reduce((acc, item) => acc + (item.price * item.qty), 0);
+            const discPercent = parseFloat(document.getElementById('inv-discount-input').value) || 0;
+            const taxPercent = parseFloat(document.getElementById('inv-tax-input').value) || 0;
+
+            const discAmt = subtotal * (discPercent / 100);
+            const taxableAmt = subtotal - discAmt;
+            const taxAmt = taxableAmt * (taxPercent / 100);
+            const total = taxableAmt + taxAmt;
+
+            document.getElementById('sum-subtotal').innerText = `₹${subtotal.toFixed(2)}`;
+            document.getElementById('sum-discount').innerText = `- ₹${discAmt.toFixed(2)}`;
+            document.getElementById('sum-tax').innerText = `+ ₹${taxAmt.toFixed(2)}`;
+            document.getElementById('sum-total').innerText = `₹${total.toFixed(2)}`;
+        }
+
+        async function saveInvoice() {
+            const customerId = document.getElementById('inv-customer-select').value;
+            if (!customerId || invoiceItems.length === 0) return showToast('Please select a customer and products');
+
+            const subtotal = invoiceItems.reduce((acc, item) => acc + (item.price * item.qty), 0);
+            const discPercent = parseFloat(document.getElementById('inv-discount-input').value) || 0;
+            const taxPercent = parseFloat(document.getElementById('inv-tax-input').value) || 0;
+            const discAmt = subtotal * (discPercent / 100);
+            const taxAmt = (subtotal - discAmt) * (taxPercent / 100);
+            const total = (subtotal - discAmt) + taxAmt;
+
+            const { data, error } = await supabaseClient.from('invoices').insert([{
+                customer_id: customerId,
+                subtotal,
+                discount_percent: discPercent,
+                discount_amount: discAmt,
+                tax_percent: taxPercent,
+                tax_amount: taxAmt,
+                total_amount: total,
+                user_id: currentUser.id
+            }]).select();
+
+            if (error) return showToast(error.message);
+
+            const invId = data[0].id;
+            const itemsToInsert = invoiceItems.map(item => ({
+                invoice_id: invId,
+                product_id: item.id,
+                quantity: item.qty,
+                unit_price: item.price,
+                total_price: item.price * item.qty
+            }));
+
+            await supabaseClient.from('invoice_items').insert(itemsToInsert);
+            showToast('Invoice generated successfully!');
+            closeInvoiceModal();
+            loadInvoices();
+        }
+
+        async function deleteInvoice(id) {
+            if (!confirm('Delete this invoice?')) return;
+            await supabaseClient.from('invoices').delete().eq('id', id);
+            loadInvoices();
+        }
+
+        async function viewPDF(invId) {
+            const { data: inv } = await supabaseClient.from('invoices').select('*, customers(*)').eq('id', invId).single();
+            const { data: items } = await supabaseClient.from('invoice_items').select('*, products(*)').eq('invoice_id', invId);
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            // Header
+            doc.setFontSize(22); doc.setTextColor(255, 153, 51); doc.text("POSpro TAX INVOICE", 14, 25);
+            doc.setFontSize(10); doc.setTextColor(150); doc.text(`Invoice #: ${invId} | Date: ${new Date(inv.created_at).toLocaleDateString()}`, 14, 32);
+
+            // Customer Details
+            doc.setTextColor(0); doc.setFontSize(12); doc.text("Billed To:", 14, 45);
+            doc.setFontSize(10); doc.text(`${inv.customers.name}`, 14, 52);
+            doc.text(`${inv.customers.phone || ''}`, 14, 57);
+            doc.text(`GST: ${inv.customers.gst_number || '-'}`, 14, 62);
+            doc.text(`${inv.customers.address || ''}`, 14, 67);
+
+            // Table
+            doc.autoTable({
+                startY: 75,
+                head: [['Product', 'Price', 'Qty', 'Total']],
+                body: items.map(it => [it.products.name, `₹${it.unit_price}`, it.quantity, `₹${it.total_price}`]),
+                theme: 'striped',
+                headStyles: { fillColor: [255, 153, 51] }
+            });
+
+            const finalY = doc.lastAutoTable.finalY + 10;
+            doc.text(`Subtotal: ₹${parseFloat(inv.subtotal).toFixed(2)}`, 140, finalY);
+            doc.text(`Discount (${inv.discount_percent}%): - ₹${parseFloat(inv.discount_amount).toFixed(2)}`, 140, finalY + 7);
+            doc.text(`GST (${inv.tax_percent}%): + ₹${parseFloat(inv.tax_amount).toFixed(2)}`, 140, finalY + 14);
+            doc.setFontSize(14); doc.setFont(undefined, 'bold');
+            doc.text(`Total Payable: ₹${parseFloat(inv.total_amount).toFixed(2)}`, 140, finalY + 25);
+
+            doc.save(`Invoice_${invId}.pdf`);
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = msg;
+            t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3000);
+        }
+
+        checkAuth();
+        document.getElementById('logout-btn').onclick = async () => { await supabaseClient.auth.signOut(); window.location.href = 'login.html'; };
+    </script>
+</body>
+</html>
