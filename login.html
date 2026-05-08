@@ -235,7 +235,7 @@
         const SUPABASE_URL = 'https://esfttasgrcnwneyorrsq.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzZnR0YXNncmNud25leW9ycnNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMjU2MDYsImV4cCI6MjA5MzgwMTYwNn0.GGS6HPrHVdZeq2jUEPaXDwkw8IMwfiTrZ3s6hys0FgA';
         
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let currentMode = 'login';
 
@@ -285,7 +285,7 @@
 
             try {
                 if (currentMode === 'signup') {
-                    const { data, error } = await supabase.auth.signUp({
+                    const { data, error } = await supabaseClient.auth.signUp({
                         email,
                         password,
                         options: {
@@ -293,9 +293,9 @@
                         }
                     });
                     if (error) throw error;
-                    alert('Check your email for the confirmation link!');
+                    alert('Signup successful! Please check your email for the confirmation link.');
                 } else {
-                    const { data, error } = await supabase.auth.signInWithPassword({
+                    const { data, error } = await supabaseClient.auth.signInWithPassword({
                         email,
                         password
                     });
