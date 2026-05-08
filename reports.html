@@ -97,14 +97,54 @@
         }
         .summary-val { font-size: 1.5rem; font-weight: 700; color: var(--primary); }
         /* Custom Multi-Select Dropdown */
-        .multi-select {
+        .multi-select-container {
             position: relative;
+            width: 100%;
+        }
+
+        .multi-select-header {
             background: rgba(15, 23, 42, 0.8);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 12px;
-            height: 100px;
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            color: var(--text-main);
+            transition: all 0.2s;
+        }
+
+        .multi-select-header:hover {
+            border-color: var(--primary);
+        }
+
+        .multi-select-header::after {
+            content: '▾';
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        .multi-select-options {
+            position: absolute;
+            top: calc(100% + 5px);
+            left: 0;
+            right: 0;
+            background: #0f172a;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            max-height: 200px;
             overflow-y: auto;
+            display: none;
+            z-index: 1000;
             padding: 0.5rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(20px);
+        }
+
+        .multi-select-container.open .multi-select-options {
+            display: block;
         }
 
         .select-option {
@@ -162,7 +202,7 @@
             </div>
         </div>
 
-        <div class="filter-section" style="grid-template-columns: 120px 1fr 1fr 1fr 150px;">
+        <div class="filter-section" style="grid-template-columns: 120px 1fr 1fr 1fr 150px; overflow: visible;">
             <div class="form-group" style="gap: 0.25rem;">
                 <label style="font-size: 0.7rem;">Date Range</label>
                 <input type="date" id="filter-from" style="padding: 0.4rem; font-size: 0.75rem;">
@@ -170,15 +210,24 @@
             </div>
             <div class="form-group">
                 <label>Categories</label>
-                <div id="filter-category" class="multi-select"></div>
+                <div class="multi-select-container" id="container-category">
+                    <div class="multi-select-header" onclick="toggleDropdown('category')">All Categories</div>
+                    <div id="filter-category" class="multi-select-options"></div>
+                </div>
             </div>
             <div class="form-group">
                 <label>Products</label>
-                <div id="filter-product" class="multi-select"></div>
+                <div class="multi-select-container" id="container-product">
+                    <div class="multi-select-header" onclick="toggleDropdown('product')">All Products</div>
+                    <div id="filter-product" class="multi-select-options"></div>
+                </div>
             </div>
             <div class="form-group">
                 <label>Customers</label>
-                <div id="filter-customer" class="multi-select"></div>
+                <div class="multi-select-container" id="container-customer">
+                    <div class="multi-select-header" onclick="toggleDropdown('customer')">All Customers</div>
+                    <div id="filter-customer" class="multi-select-options"></div>
+                </div>
             </div>
             <div class="form-group" style="gap: 0.5rem;">
                 <button class="btn btn-primary" onclick="generateReport()" style="padding: 0.6rem; font-size: 0.85rem;">Generate</button>
@@ -244,8 +293,8 @@
             const cSel = document.getElementById('filter-customer');
             custs.data?.forEach(c => {
                 cSel.innerHTML += `
-                    <div class="select-option">
-                        <input type="checkbox" id="cust-${c.id}" value="${c.id}" class="cust-check">
+                    <div class="select-option" onclick="event.stopPropagation()">
+                        <input type="checkbox" id="cust-${c.id}" value="${c.id}" class="cust-check" onchange="updateHeaderText('customer')">
                         <label for="cust-${c.id}">${c.name}</label>
                     </div>
                 `;
@@ -254,8 +303,8 @@
             const pSel = document.getElementById('filter-product');
             prods.data?.forEach(p => {
                 pSel.innerHTML += `
-                    <div class="select-option">
-                        <input type="checkbox" id="prod-${p.id}" value="${p.id}" class="prod-check">
+                    <div class="select-option" onclick="event.stopPropagation()">
+                        <input type="checkbox" id="prod-${p.id}" value="${p.id}" class="prod-check" onchange="updateHeaderText('product')">
                         <label for="prod-${p.id}">${p.name}</label>
                     </div>
                 `;
@@ -265,12 +314,39 @@
             const categories = [...new Set(prods.data?.map(p => p.category).filter(Boolean))];
             categories.forEach(cat => {
                 catSel.innerHTML += `
-                    <div class="select-option">
-                        <input type="checkbox" id="cat-${cat}" value="${cat}" class="cat-check">
+                    <div class="select-option" onclick="event.stopPropagation()">
+                        <input type="checkbox" id="cat-${cat}" value="${cat}" class="cat-check" onchange="updateHeaderText('category')">
                         <label for="cat-${cat}">${cat}</label>
                     </div>
                 `;
             });
+        }
+
+        function toggleDropdown(type) {
+            const container = document.getElementById(`container-${type}`);
+            const wasOpen = container.classList.contains('open');
+            
+            // Close all
+            document.querySelectorAll('.multi-select-container').forEach(c => c.classList.remove('open'));
+            
+            if (!wasOpen) container.classList.add('open');
+        }
+
+        // Close dropdowns on click outside
+        window.onclick = function(event) {
+            if (!event.target.closest('.multi-select-container')) {
+                document.querySelectorAll('.multi-select-container').forEach(c => c.classList.remove('open'));
+            }
+        };
+
+        function updateHeaderText(type) {
+            const checked = document.querySelectorAll(`.${type === 'customer' ? 'cust' : type === 'product' ? 'prod' : 'cat'}-check:checked`);
+            const header = document.querySelector(`#container-${type} .multi-select-header`);
+            const label = type.charAt(0).toUpperCase() + type.slice(1) + 's';
+            
+            if (checked.length === 0) header.innerText = `All ${label}`;
+            else if (checked.length === 1) header.innerText = checked[0].nextElementSibling.innerText;
+            else header.innerText = `${checked.length} Selected`;
         }
 
         async function generateReport() {
@@ -310,6 +386,7 @@
             document.getElementById('filter-from').value = '';
             document.getElementById('filter-to').value = '';
             document.querySelectorAll('.filter-section input[type="checkbox"]').forEach(cb => cb.checked = false);
+            ['customer', 'product', 'category'].forEach(updateHeaderText);
             reportData = [];
             renderReport();
         }
