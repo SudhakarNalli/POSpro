@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>POSpro | Premium Point of Sale</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
             --primary: #ff9933;
@@ -281,7 +282,7 @@
             <a href="#" class="nav-link">Pricing</a>
             <a href="#" class="nav-link">Support</a>
         </div>
-        <a href="#" class="btn btn-secondary" style="padding: 0.6rem 1.2rem; font-size: 0.9rem;">Sign In</a>
+        <a href="login.html" class="btn btn-secondary" id="auth-nav-btn" style="padding: 0.6rem 1.2rem; font-size: 0.9rem;">Sign In</a>
     </nav>
 
     <main>
@@ -335,6 +336,27 @@
             </div>
         </div>
     </main>
+    <script>
+        // Supabase Configuration
+        const SUPABASE_URL = 'https://YOUR_PROJECT_ID.supabase.co';
+        const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        async function checkUser() {
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            const authBtn = document.getElementById('auth-nav-btn');
+            
+            if (user) {
+                authBtn.innerText = 'Logout';
+                authBtn.href = '#';
+                authBtn.onclick = async () => {
+                    await supabaseClient.auth.signOut();
+                    window.location.reload();
+                };
+            }
+        }
+        checkUser();
+    </script>
 </body>
 
 </html>
