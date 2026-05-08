@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Reports | POSpro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        :root {
+            --primary: #ff9933;
+            --bg-dark: #0f172a;
+            --bg-card: rgba(30, 41, 59, 0.7);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-gradient: linear-gradient(135deg, #ff9933 0%, #ff5e3a 100%);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-dark);
+            background-image: radial-gradient(circle at 10% 10%, rgba(255, 153, 51, 0.05) 0%, transparent 40%), radial-gradient(circle at 90% 90%, rgba(255, 94, 58, 0.05) 0%, transparent 40%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: none;
+            flex-direction: column;
+        }
+        body.authenticated { display: flex; }
+
+        nav {
+            padding: 1.25rem 4rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .logo { font-size: 1.5rem; font-weight: 700; background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-decoration: none; }
+        .nav-links { display: flex; gap: 2.5rem; }
+        .nav-link { text-decoration: none; color: var(--text-muted); font-weight: 500; transition: color 0.3s ease; }
+        .nav-link:hover, .nav-link.active { color: var(--primary); }
+
+        main { flex: 1; padding: 3rem 4rem; max-width: 1400px; margin: 0 auto; width: 100%; }
+        
+        .filter-section {
+            background: var(--bg-card);
+            padding: 2rem;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 2rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            align-items: flex-end;
+        }
+
+        .form-group { display: flex; flex-direction: column; gap: 0.5rem; }
+        label { color: var(--text-muted); font-size: 0.8rem; font-weight: 600; text-transform: uppercase; }
+        input, select { 
+            padding: 0.75rem; 
+            background: rgba(15, 23, 42, 0.8); 
+            border: 1px solid rgba(255, 255, 255, 0.1); 
+            border-radius: 12px; 
+            color: white; 
+            font-family: inherit;
+        }
+
+        .btn { padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 600; cursor: pointer; border: none; font-family: inherit; transition: all 0.2s; }
+        .btn-primary { background: var(--accent-gradient); color: white; }
+        .btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .btn-success { background: #22c55e; color: white; }
+
+        .report-card { background: var(--bg-card); border-radius: 24px; border: 1px solid rgba(255, 255, 255, 0.1); overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th { background: rgba(15, 23, 42, 0.5); padding: 1.25rem 1.5rem; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; }
+        td { padding: 1.25rem 1.5rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+
+        .summary-banner {
+            display: flex;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        .summary-box {
+            background: rgba(255, 153, 51, 0.1);
+            padding: 1.5rem;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 153, 51, 0.2);
+            flex: 1;
+        }
+        .summary-val { font-size: 1.5rem; font-weight: 700; color: var(--primary); }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="index.html" class="logo">POSpro</a>
+        <div class="nav-links">
+            <a href="index.html" class="nav-link">Dashboard</a>
+            <a href="customers.html" class="nav-link">Customers</a>
+            <a href="products.html" class="nav-link">Products</a>
+            <a href="invoices.html" class="nav-link">Invoices</a>
+            <a href="reports.html" class="nav-link active">Reports</a>
+        </div>
+        <button class="btn btn-ghost" onclick="logout()">Logout</button>
+    </nav>
+
+    <main>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <h1>Sales Analysis Report</h1>
+            <div style="display: flex; gap: 1rem;">
+                <button class="btn btn-success" onclick="exportExcel()">Export Excel</button>
+                <button class="btn btn-primary" onclick="exportPDF()">Export PDF</button>
+            </div>
+        </div>
+
+        <div class="filter-section">
+            <div class="form-group">
+                <label>From Date</label>
+                <input type="date" id="filter-from">
+            </div>
+            <div class="form-group">
+                <label>To Date</label>
+                <input type="date" id="filter-to">
+            </div>
+            <div class="form-group">
+                <label>Customer</label>
+                <select id="filter-customer"><option value="all">All Customers</option></select>
+            </div>
+            <div class="form-group">
+                <label>Product</label>
+                <select id="filter-product"><option value="all">All Products</option></select>
+            </div>
+            <button class="btn btn-primary" onclick="generateReport()">Generate Report</button>
+        </div>
+
+        <div class="summary-banner" id="summary-banner" style="display: none;">
+            <div class="summary-box">
+                <label>Total Sales</label>
+                <div class="summary-val" id="sum-total">₹0</div>
+            </div>
+            <div class="summary-box">
+                <label>Total Tax (GST)</label>
+                <div class="summary-val" id="sum-tax">₹0</div>
+            </div>
+            <div class="summary-box">
+                <label>Invoice Count</label>
+                <div class="summary-val" id="sum-count">0</div>
+            </div>
+        </div>
+
+        <div class="report-card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Inv #</th>
+                        <th>Customer</th>
+                        <th>Items</th>
+                        <th>Tax</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody id="report-body">
+                    <tr><td colspan="6" style="text-align: center; padding: 4rem; color: var(--text-muted);">Set filters and click Generate Report</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <script>
+        const SUPABASE_URL = 'https://esfttasgrcnwneyorrsq.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzZnR0YXNncmNud25leW9ycnNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMjU2MDYsImV4cCI6MjA5MzgwMTYwNn0.GGS6HPrHVdZeq2jUEPaXDwkw8IMwfiTrZ3s6hys0FgA';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let reportData = [];
+
+        async function init() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) return window.location.href = 'login.html';
+            document.body.classList.add('authenticated');
+            loadFilters();
+        }
+
+        async function loadFilters() {
+            const [custs, prods] = await Promise.all([
+                supabaseClient.from('customers').select('id, name'),
+                supabaseClient.from('products').select('id, name')
+            ]);
+            
+            const cSel = document.getElementById('filter-customer');
+            custs.data?.forEach(c => cSel.innerHTML += `<option value="${c.id}">${c.name}</option>`);
+            
+            const pSel = document.getElementById('filter-product');
+            prods.data?.forEach(p => pSel.innerHTML += `<option value="${p.id}">${p.name}</option>`);
+        }
+
+        async function generateReport() {
+            const from = document.getElementById('filter-from').value;
+            const to = document.getElementById('filter-to').value;
+            const customerId = document.getElementById('filter-customer').value;
+            const productId = document.getElementById('filter-product').value;
+
+            let query = supabaseClient.from('invoices').select('*, customers(name), invoice_items(*, products(name))');
+            
+            if (from) query = query.gte('created_at', from);
+            if (to) query = query.lte('created_at', to + 'T23:59:59');
+            if (customerId !== 'all') query = query.eq('customer_id', customerId);
+
+            const { data, error } = await query.order('created_at', { ascending: false });
+            if (error) return alert(error.message);
+
+            // Filter by product if needed
+            reportData = (productId === 'all') 
+                ? data 
+                : data.filter(inv => inv.invoice_items.some(item => item.product_id == productId));
+
+            renderReport();
+        }
+
+        function renderReport() {
+            const tbody = document.getElementById('report-body');
+            tbody.innerHTML = '';
+            
+            let totalRev = 0, totalTax = 0;
+
+            reportData.forEach(inv => {
+                totalRev += parseFloat(inv.total_amount);
+                totalTax += parseFloat(inv.tax_amount);
+                
+                const itemsStr = inv.invoice_items.map(it => `${it.products.name} (x${it.quantity})`).join(', ');
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${new Date(inv.created_at).toLocaleDateString()}</td>
+                        <td>#${inv.id}</td>
+                        <td>${inv.customers?.name || 'Walk-in'}</td>
+                        <td style="font-size: 0.8rem; color: var(--text-muted); max-width: 300px;">${itemsStr}</td>
+                        <td>₹${parseFloat(inv.tax_amount).toFixed(2)}</td>
+                        <td style="font-weight: 700; color: var(--primary);">₹${parseFloat(inv.total_amount).toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('summary-banner').style.display = 'flex';
+            document.getElementById('sum-total').innerText = `₹${totalRev.toLocaleString()}`;
+            document.getElementById('sum-tax').innerText = `₹${totalTax.toLocaleString()}`;
+            document.getElementById('sum-count').innerText = reportData.length;
+        }
+
+        function exportExcel() {
+            const data = reportData.map(inv => ({
+                Date: new Date(inv.created_at).toLocaleDateString(),
+                Invoice: inv.id,
+                Customer: inv.customers?.name,
+                Subtotal: inv.subtotal,
+                Tax: inv.tax_amount,
+                Total: inv.total_amount
+            }));
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Sales Report");
+            XLSX.writeFile(wb, "POSpro_Sales_Report.xlsx");
+        }
+
+        function exportPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.text("Sales Analysis Report", 14, 15);
+            doc.autoTable({
+                startY: 20,
+                head: [['Date', 'Inv #', 'Customer', 'Tax', 'Total']],
+                body: reportData.map(inv => [
+                    new Date(inv.created_at).toLocaleDateString(),
+                    inv.id,
+                    inv.customers?.name,
+                    `₹${inv.tax_amount}`,
+                    `₹${inv.total_amount}`
+                ]),
+                theme: 'grid',
+                headStyles: { fillColor: [255, 153, 51] }
+            });
+            doc.save("POSpro_Sales_Report.pdf");
+        }
+
+        async function logout() { await supabaseClient.auth.signOut(); window.location.href = 'login.html'; }
+        init();
+    </script>
+</body>
+</html>
