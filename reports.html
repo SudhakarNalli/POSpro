@@ -356,6 +356,10 @@
             const from = document.getElementById('filter-from').value;
             const to = document.getElementById('filter-to').value;
             
+            if (from && to && new Date(to) < new Date(from)) {
+                return alert("Oops! 'To Date' cannot be earlier than 'From Date'. Please check your range.");
+            }
+
             const selectedCusts = Array.from(document.querySelectorAll('.cust-check:checked')).map(cb => cb.value);
             const selectedProds = Array.from(document.querySelectorAll('.prod-check:checked')).map(cb => cb.value);
             const selectedCats = Array.from(document.querySelectorAll('.cat-check:checked')).map(cb => cb.value);
