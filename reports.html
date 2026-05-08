@@ -52,66 +52,50 @@
         
         .filter-section {
             background: var(--bg-card);
-            padding: 1.5rem;
-            border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            margin-bottom: 2.5rem;
-            display: flex;
-            align-items: center;
-            gap: 1.5rem;
-            overflow: visible;
-        }
-
-        .filter-group { display: flex; flex-direction: column; gap: 0.5rem; flex: 1; }
-        .date-range-inputs { display: flex; align-items: center; gap: 0.5rem; }
-        
-        .form-group label { 
-            color: var(--text-muted); 
-            font-size: 0.65rem; 
-            font-weight: 700; 
-            text-transform: uppercase; 
-            letter-spacing: 1px;
-            margin-bottom: 0.25rem;
-        }
-
-        .btn-action-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-            min-width: 120px;
-        }
-
-        .summary-banner {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1.5rem;
-            margin-bottom: 3rem;
-        }
-
-        .summary-box {
-            background: linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%);
             padding: 2rem;
             border-radius: 24px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 2rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            align-items: flex-end;
+        }
+
+        .form-group { display: flex; flex-direction: column; gap: 0.5rem; }
+        label { color: var(--text-muted); font-size: 0.8rem; font-weight: 600; text-transform: uppercase; }
+        input, select { 
+            padding: 0.75rem; 
+            background: rgba(15, 23, 42, 0.8); 
+            border: 1px solid rgba(255, 255, 255, 0.1); 
+            border-radius: 12px; 
+            color: white; 
+            font-family: inherit;
+        }
+
+        .btn { padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 600; cursor: pointer; border: none; font-family: inherit; transition: all 0.2s; }
+        .btn-primary { background: var(--accent-gradient); color: white; }
+        .btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .btn-success { background: #22c55e; color: white; }
+
+        .report-card { background: var(--bg-card); border-radius: 24px; border: 1px solid rgba(255, 255, 255, 0.1); overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th { background: rgba(15, 23, 42, 0.5); padding: 1.25rem 1.5rem; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; }
+        td { padding: 1.25rem 1.5rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+
+        .summary-banner {
             display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-            position: relative;
-            overflow: hidden;
+            gap: 2rem;
+            margin-bottom: 2rem;
         }
-
-        .summary-box::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 4px;
-            height: 100%;
-            background: var(--primary);
+        .summary-box {
+            background: rgba(255, 153, 51, 0.1);
+            padding: 1.5rem;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 153, 51, 0.2);
+            flex: 1;
         }
-
-        .summary-label { color: var(--text-muted); font-size: 0.8rem; font-weight: 600; text-transform: uppercase; }
-        .summary-val { font-size: 2rem; font-weight: 700; color: white; }
+        .summary-val { font-size: 1.5rem; font-weight: 700; color: var(--primary); }
         /* Custom Multi-Select Dropdown */
         .multi-select-container {
             position: relative;
@@ -218,59 +202,52 @@
             </div>
         </div>
 
-        <div class="filter-section">
-            <div class="filter-group" style="flex: 0 0 300px;">
-                <label>Date Duration</label>
-                <div class="date-range-inputs">
-                    <input type="date" id="filter-from" style="flex: 1;">
-                    <span style="color: var(--text-muted);">to</span>
-                    <input type="date" id="filter-to" style="flex: 1;">
-                </div>
+        <div class="filter-section" style="grid-template-columns: 120px 1fr 1fr 1fr 150px; overflow: visible;">
+            <div class="form-group" style="gap: 0.25rem;">
+                <label style="font-size: 0.7rem;">Date Range</label>
+                <input type="date" id="filter-from" style="padding: 0.4rem; font-size: 0.75rem;">
+                <input type="date" id="filter-to" style="padding: 0.4rem; font-size: 0.75rem;">
             </div>
-            
-            <div class="filter-group">
-                <label>Category</label>
+            <div class="form-group">
+                <label>Categories</label>
                 <div class="multi-select-container" id="container-category">
                     <div class="multi-select-header" onclick="toggleDropdown('category')">All Categories</div>
                     <div id="filter-category" class="multi-select-options"></div>
                 </div>
             </div>
-
-            <div class="filter-group">
-                <label>Product</label>
+            <div class="form-group">
+                <label>Products</label>
                 <div class="multi-select-container" id="container-product">
                     <div class="multi-select-header" onclick="toggleDropdown('product')">All Products</div>
                     <div id="filter-product" class="multi-select-options"></div>
                 </div>
             </div>
-
-            <div class="filter-group">
-                <label>Customer</label>
+            <div class="form-group">
+                <label>Customers</label>
                 <div class="multi-select-container" id="container-customer">
                     <div class="multi-select-header" onclick="toggleDropdown('customer')">All Customers</div>
                     <div id="filter-customer" class="multi-select-options"></div>
                 </div>
             </div>
-
-            <div class="btn-action-group">
-                <button class="btn btn-primary" onclick="generateReport()" style="width: 100%;">Generate</button>
-                <button class="btn btn-ghost" onclick="resetFilters()" style="width: 100%; font-size: 0.8rem;">Reset</button>
+            <div class="form-group" style="gap: 0.5rem;">
+                <button class="btn btn-primary" onclick="generateReport()" style="padding: 0.6rem; font-size: 0.85rem;">Generate</button>
+                <button class="btn btn-ghost" onclick="resetFilters()" style="padding: 0.6rem; font-size: 0.8rem;">Reset</button>
             </div>
         </div>
-        <p style="margin-top: -2rem; margin-bottom: 2rem; font-size: 0.7rem; color: var(--text-muted);">* Select filters and click generate to analyze sales performance</p>
+        <p style="margin-top: -1.5rem; margin-bottom: 2rem; font-size: 0.7rem; color: var(--text-muted);">* Select multiple options using checkboxes</p>
 
         <div class="summary-banner" id="summary-banner" style="display: none;">
             <div class="summary-box">
-                <span class="summary-label">Net Sales</span>
-                <span class="summary-val" id="sum-total">₹0</span>
+                <label>Total Sales</label>
+                <div class="summary-val" id="sum-total">₹0</div>
             </div>
-            <div class="summary-box" style="border-left-color: #3b82f6;">
-                <span class="summary-label">GST Collected</span>
-                <span class="summary-val" id="sum-tax" style="color: #3b82f6;">₹0</span>
+            <div class="summary-box">
+                <label>Total Tax (GST)</label>
+                <div class="summary-val" id="sum-tax">₹0</div>
             </div>
-            <div class="summary-box" style="border-left-color: var(--success);">
-                <span class="summary-label">Orders</span>
-                <span class="summary-val" id="sum-count" style="color: var(--success);">0</span>
+            <div class="summary-box">
+                <label>Invoice Count</label>
+                <div class="summary-val" id="sum-count">0</div>
             </div>
         </div>
 
