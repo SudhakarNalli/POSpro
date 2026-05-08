@@ -96,6 +96,48 @@
             flex: 1;
         }
         .summary-val { font-size: 1.5rem; font-weight: 700; color: var(--primary); }
+        /* Custom Multi-Select Dropdown */
+        .multi-select {
+            position: relative;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            height: 100px;
+            overflow-y: auto;
+            padding: 0.5rem;
+        }
+
+        .select-option {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: background 0.2s;
+            font-size: 0.85rem;
+            color: var(--text-main);
+        }
+
+        .select-option:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .select-option input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+
+        .select-option label {
+            margin-bottom: 0;
+            text-transform: none;
+            color: inherit;
+            font-weight: 400;
+            cursor: pointer;
+            flex: 1;
+        }
     </style>
 </head>
 <body>
@@ -128,22 +170,22 @@
             </div>
             <div class="form-group">
                 <label>Categories</label>
-                <select id="filter-category" multiple style="height: 100px; font-size: 0.85rem;"></select>
+                <div id="filter-category" class="multi-select"></div>
             </div>
             <div class="form-group">
                 <label>Products</label>
-                <select id="filter-product" multiple style="height: 100px; font-size: 0.85rem;"></select>
+                <div id="filter-product" class="multi-select"></div>
             </div>
             <div class="form-group">
                 <label>Customers</label>
-                <select id="filter-customer" multiple style="height: 100px; font-size: 0.85rem;"></select>
+                <div id="filter-customer" class="multi-select"></div>
             </div>
             <div class="form-group" style="gap: 0.5rem;">
                 <button class="btn btn-primary" onclick="generateReport()" style="padding: 0.6rem; font-size: 0.85rem;">Generate</button>
                 <button class="btn btn-ghost" onclick="resetFilters()" style="padding: 0.6rem; font-size: 0.8rem;">Reset</button>
             </div>
         </div>
-        <p style="margin-top: -1.5rem; margin-bottom: 2rem; font-size: 0.7rem; color: var(--text-muted);">* Hold Ctrl (or Cmd) to multi-select</p>
+        <p style="margin-top: -1.5rem; margin-bottom: 2rem; font-size: 0.7rem; color: var(--text-muted);">* Select multiple options using checkboxes</p>
 
         <div class="summary-banner" id="summary-banner" style="display: none;">
             <div class="summary-box">
@@ -200,23 +242,44 @@
             ]);
             
             const cSel = document.getElementById('filter-customer');
-            custs.data?.forEach(c => cSel.innerHTML += `<option value="${c.id}">${c.name}</option>`);
+            custs.data?.forEach(c => {
+                cSel.innerHTML += `
+                    <div class="select-option">
+                        <input type="checkbox" id="cust-${c.id}" value="${c.id}" class="cust-check">
+                        <label for="cust-${c.id}">${c.name}</label>
+                    </div>
+                `;
+            });
             
             const pSel = document.getElementById('filter-product');
-            prods.data?.forEach(p => pSel.innerHTML += `<option value="${p.id}">${p.name}</option>`);
+            prods.data?.forEach(p => {
+                pSel.innerHTML += `
+                    <div class="select-option">
+                        <input type="checkbox" id="prod-${p.id}" value="${p.id}" class="prod-check">
+                        <label for="prod-${p.id}">${p.name}</label>
+                    </div>
+                `;
+            });
 
             const catSel = document.getElementById('filter-category');
             const categories = [...new Set(prods.data?.map(p => p.category).filter(Boolean))];
-            categories.forEach(cat => catSel.innerHTML += `<option value="${cat}">${cat}</option>`);
+            categories.forEach(cat => {
+                catSel.innerHTML += `
+                    <div class="select-option">
+                        <input type="checkbox" id="cat-${cat}" value="${cat}" class="cat-check">
+                        <label for="cat-${cat}">${cat}</label>
+                    </div>
+                `;
+            });
         }
 
         async function generateReport() {
             const from = document.getElementById('filter-from').value;
             const to = document.getElementById('filter-to').value;
             
-            const selectedCusts = Array.from(document.getElementById('filter-customer').selectedOptions).map(o => o.value);
-            const selectedProds = Array.from(document.getElementById('filter-product').selectedOptions).map(o => o.value);
-            const selectedCats = Array.from(document.getElementById('filter-category').selectedOptions).map(o => o.value);
+            const selectedCusts = Array.from(document.querySelectorAll('.cust-check:checked')).map(cb => cb.value);
+            const selectedProds = Array.from(document.querySelectorAll('.prod-check:checked')).map(cb => cb.value);
+            const selectedCats = Array.from(document.querySelectorAll('.cat-check:checked')).map(cb => cb.value);
 
             let query = supabaseClient.from('invoices').select('*, customers(name), invoice_items(*, products(name, category))');
             
@@ -246,7 +309,7 @@
         function resetFilters() {
             document.getElementById('filter-from').value = '';
             document.getElementById('filter-to').value = '';
-            document.querySelectorAll('select').forEach(s => s.selectedIndex = -1);
+            document.querySelectorAll('.filter-section input[type="checkbox"]').forEach(cb => cb.checked = false);
             reportData = [];
             renderReport();
         }
