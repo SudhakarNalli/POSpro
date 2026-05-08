@@ -358,34 +358,121 @@
 
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
+            
+            const brandColor = [255, 153, 51]; // #ff9933
+            const textColor = [30, 41, 59];
+            const lightTextColor = [100, 116, 139];
 
-            // Header
-            doc.setFontSize(22); doc.setTextColor(255, 153, 51); doc.text("POSpro TAX INVOICE", 14, 25);
-            doc.setFontSize(10); doc.setTextColor(150); doc.text(`Invoice #: ${invId} | Date: ${new Date(inv.created_at).toLocaleDateString()}`, 14, 32);
+            // 1. Header & Brand
+            doc.setFillColor(...brandColor);
+            doc.rect(0, 0, 210, 40, 'F');
+            
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(28);
+            doc.setTextColor(255, 255, 255);
+            doc.text("POSpro", 15, 25);
+            
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "normal");
+            doc.text("MODERN BUSINESS SOLUTIONS", 15, 32);
+            
+            doc.setFontSize(20);
+            doc.text("TAX INVOICE", 140, 25);
 
-            // Customer Details
-            doc.setTextColor(0); doc.setFontSize(12); doc.text("Billed To:", 14, 45);
-            doc.setFontSize(10); doc.text(`${inv.customers.name}`, 14, 52);
-            doc.text(`${inv.customers.phone || ''}`, 14, 57);
-            doc.text(`GST: ${inv.customers.gst_number || '-'}`, 14, 62);
-            doc.text(`${inv.customers.address || ''}`, 14, 67);
+            // 2. Invoice Meta Info
+            doc.setTextColor(...textColor);
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "bold");
+            doc.text("Invoice Details:", 140, 55);
+            doc.setFont("helvetica", "normal");
+            doc.text(`Invoice Number: #${invId}`, 140, 62);
+            doc.text(`Date: ${new Date(inv.created_at).toLocaleDateString()}`, 140, 67);
+            doc.text(`Status: PAID`, 140, 72);
 
-            // Table
+            // 3. Billing Info
+            doc.setFont("helvetica", "bold");
+            doc.text("BILL TO:", 15, 55);
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(12);
+            doc.text(`${inv.customers.name}`, 15, 62);
+            doc.setFontSize(10);
+            doc.setTextColor(...lightTextColor);
+            doc.text(`${inv.customers.phone || ''}`, 15, 68);
+            doc.text(`GSTIN: ${inv.customers.gst_number || 'N/A'}`, 15, 73);
+            doc.text(`${inv.customers.address || 'No address provided'}`, 15, 78, { maxWidth: 80 });
+
+            // 4. Items Table
             doc.autoTable({
-                startY: 75,
-                head: [['Product', 'Price', 'Qty', 'Total']],
-                body: items.map(it => [it.products.name, `₹${it.unit_price}`, it.quantity, `₹${it.total_price}`]),
-                theme: 'striped',
-                headStyles: { fillColor: [255, 153, 51] }
+                startY: 90,
+                head: [['#', 'Item Description', 'Unit Price', 'Qty', 'Total']],
+                body: items.map((it, i) => [
+                    i + 1, 
+                    it.products.name, 
+                    `INR ${parseFloat(it.unit_price).toFixed(2)}`, 
+                    it.quantity, 
+                    `INR ${parseFloat(it.total_price).toFixed(2)}`
+                ]),
+                theme: 'grid',
+                headStyles: { 
+                    fillColor: brandColor, 
+                    textColor: [255, 255, 255],
+                    fontSize: 10,
+                    fontStyle: 'bold',
+                    halign: 'center'
+                },
+                columnStyles: {
+                    0: { halign: 'center', cellWidth: 10 },
+                    2: { halign: 'right' },
+                    3: { halign: 'center' },
+                    4: { halign: 'right' }
+                },
+                styles: {
+                    fontSize: 9,
+                    cellPadding: 4
+                }
             });
 
+            // 5. Summary Section
             const finalY = doc.lastAutoTable.finalY + 10;
-            doc.text(`Subtotal: ₹${parseFloat(inv.subtotal).toFixed(2)}`, 140, finalY);
-            doc.text(`Discount (${inv.discount_percent}%): - ₹${parseFloat(inv.discount_amount).toFixed(2)}`, 140, finalY + 7);
-            doc.text(`CGST (${inv.tax_percent / 2}%): + ₹${parseFloat(inv.cgst_amount).toFixed(2)}`, 140, finalY + 14);
-            doc.text(`SGST (${inv.tax_percent / 2}%): + ₹${parseFloat(inv.sgst_amount).toFixed(2)}`, 140, finalY + 21);
-            doc.setFontSize(14); doc.setFont(undefined, 'bold');
-            doc.text(`Total Payable: ₹${parseFloat(inv.total_amount).toFixed(2)}`, 140, finalY + 32);
+            const summaryX = 130;
+            
+            doc.setFontSize(10);
+            doc.setTextColor(...lightTextColor);
+            doc.text("Subtotal:", summaryX, finalY);
+            doc.text(`Discount (${inv.discount_percent}%):`, summaryX, finalY + 7);
+            doc.text(`CGST (${inv.tax_percent / 2}%):`, summaryX, finalY + 14);
+            doc.text(`SGST (${inv.tax_percent / 2}%):`, summaryX, finalY + 21);
+            
+            doc.setTextColor(...textColor);
+            doc.text(`INR ${parseFloat(inv.subtotal).toFixed(2)}`, 195, finalY, { align: 'right' });
+            doc.text(`- INR ${parseFloat(inv.discount_amount).toFixed(2)}`, 195, finalY + 7, { align: 'right' });
+            doc.text(`+ INR ${parseFloat(inv.cgst_amount).toFixed(2)}`, 195, finalY + 14, { align: 'right' });
+            doc.text(`+ INR ${parseFloat(inv.sgst_amount).toFixed(2)}`, 195, finalY + 21, { align: 'right' });
+
+            // Grand Total Line
+            doc.setFillColor(248, 250, 252);
+            doc.rect(summaryX - 5, finalY + 26, 75, 12, 'F');
+            doc.setDrawColor(...brandColor);
+            doc.line(summaryX - 5, finalY + 26, summaryX + 70, finalY + 26);
+            
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(14);
+            doc.setTextColor(...brandColor);
+            doc.text("Total Amount:", summaryX, finalY + 34);
+            doc.text(`INR ${parseFloat(inv.total_amount).toFixed(2)}`, 195, finalY + 34, { align: 'right' });
+
+            // 6. Footer & Terms
+            doc.setFontSize(8);
+            doc.setTextColor(...lightTextColor);
+            doc.setFont("helvetica", "normal");
+            doc.text("TERMS & CONDITIONS:", 15, 270);
+            doc.text("1. Goods once sold will not be taken back.", 15, 275);
+            doc.text("2. This is a computer-generated invoice.", 15, 280);
+            
+            doc.setFont("helvetica", "italic");
+            doc.setFontSize(10);
+            doc.setTextColor(...brandColor);
+            doc.text("Thank you for your business!", 105, 285, { align: 'center' });
 
             doc.save(`Invoice_${invId}.pdf`);
         }
