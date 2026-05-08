@@ -125,7 +125,7 @@
     <div id="invoice-modal" class="modal-overlay">
         <div class="modal">
             <div class="header-section" style="margin-bottom: 2rem;">
-                <h2 style="color: var(--primary);">Generate New Invoice</h2>
+                <h2 id="modal-title" style="color: var(--primary);">Generate New Invoice</h2>
                 <button class="btn btn-ghost" onclick="closeInvoiceModal()">Close</button>
             </div>
 
@@ -177,7 +177,7 @@
                         <div class="summary-row"><span>SGST</span><span id="sum-sgst">₹0.00</span></div>
                         <div class="summary-row total"><span>Total Payable</span><span id="sum-total">₹0.00</span></div>
 
-                        <button class="btn btn-primary" style="width: 100%; margin-top: 2rem;" onclick="saveInvoice()">Generate & Save</button>
+                        <button id="save-btn" class="btn btn-primary" style="width: 100%; margin-top: 2rem;" onclick="saveInvoice()">Generate & Save</button>
                     </div>
                 </div>
             </div>
@@ -195,6 +195,7 @@
         let invoiceItems = [];
         let allProducts = [];
         let allCustomers = [];
+        let editingInvoiceId = null;
 
         async function checkAuth() {
             const { data: { session } } = await supabaseClient.auth.getSession();
@@ -235,6 +236,7 @@
                         <td style="font-weight: 700;">₹${parseFloat(inv.total_amount).toFixed(2)}</td>
                         <td>
                             <button class="btn btn-ghost" style="padding: 0.4rem 0.8rem;" onclick="viewPDF(${inv.id})">PDF</button>
+                            <button class="btn btn-ghost" style="padding: 0.4rem 0.8rem; color: var(--primary);" onclick="editInvoice(${inv.id})">Edit</button>
                             <button class="btn btn-danger" style="padding: 0.4rem 0.8rem;" onclick="deleteInvoice(${inv.id})">Delete</button>
                         </td>
                     </tr>
@@ -243,12 +245,39 @@
         }
 
         function openInvoiceModal() { 
+            editingInvoiceId = null;
             invoiceItems = []; 
+            document.getElementById('modal-title').innerText = "Generate New Invoice";
+            document.getElementById('save-btn').innerText = "Generate & Save";
+            document.getElementById('inv-customer-select').value = "";
+            document.getElementById('inv-discount-input').value = 0;
+            document.getElementById('inv-tax-input').value = 18;
             document.getElementById('inv-items-body').innerHTML = '';
             calculateTotals();
             document.getElementById('invoice-modal').style.display = 'flex'; 
         }
         function closeInvoiceModal() { document.getElementById('invoice-modal').style.display = 'none'; }
+
+        async function editInvoice(id) {
+            editingInvoiceId = id;
+            const { data: inv } = await supabaseClient.from('invoices').select('*, invoice_items(*)').eq('id', id).single();
+            if (!inv) return;
+
+            document.getElementById('modal-title').innerText = `Edit Invoice #${id}`;
+            document.getElementById('save-btn').innerText = "Update Invoice";
+            
+            document.getElementById('inv-customer-select').value = inv.customer_id;
+            document.getElementById('inv-discount-input').value = inv.discount_percent;
+            document.getElementById('inv-tax-input').value = inv.tax_percent;
+
+            invoiceItems = inv.invoice_items.map(it => {
+                const p = allProducts.find(prod => prod.id == it.product_id);
+                return { ...p, qty: it.quantity, price: it.unit_price };
+            });
+
+            renderItems();
+            document.getElementById('invoice-modal').style.display = 'flex';
+        }
 
         function addItem() {
             const prodId = document.getElementById('inv-product-select').value;
@@ -317,7 +346,7 @@
             const sgstAmt = taxAmt / 2;
             const total = (subtotal - discAmt) + taxAmt;
 
-            const { data, error } = await supabaseClient.from('invoices').insert([{
+            const invoiceData = {
                 customer_id: customerId,
                 subtotal,
                 discount_percent: discPercent,
@@ -328,11 +357,20 @@
                 sgst_amount: sgstAmt,
                 total_amount: total,
                 user_id: currentUser.id
-            }]).select();
+            };
 
-            if (error) return showToast(error.message);
+            let invId = editingInvoiceId;
+            if (editingInvoiceId) {
+                const { error } = await supabaseClient.from('invoices').update(invoiceData).eq('id', editingInvoiceId);
+                if (error) return showToast(error.message);
+                // Delete old items
+                await supabaseClient.from('invoice_items').delete().eq('invoice_id', editingInvoiceId);
+            } else {
+                const { data, error } = await supabaseClient.from('invoices').insert([invoiceData]).select();
+                if (error) return showToast(error.message);
+                invId = data[0].id;
+            }
 
-            const invId = data[0].id;
             const itemsToInsert = invoiceItems.map(item => ({
                 invoice_id: invId,
                 product_id: item.id,
@@ -342,7 +380,7 @@
             }));
 
             await supabaseClient.from('invoice_items').insert(itemsToInsert);
-            showToast('Invoice generated successfully!');
+            showToast(editingInvoiceId ? 'Invoice updated successfully!' : 'Invoice generated successfully!');
             closeInvoiceModal();
             loadInvoices();
         }
