@@ -260,8 +260,18 @@
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         async function init() {
+            // Listen for auth changes
+            supabaseClient.auth.onAuthStateChange((event, session) => {
+                if (session) {
+                    showDashboard(session.user);
+                } else {
+                    showLanding();
+                }
+                document.body.classList.add('visible');
+            });
+
+            // Initial check
             const { data: { session } } = await supabaseClient.auth.getSession();
-            
             if (session) {
                 showDashboard(session.user);
             } else {
