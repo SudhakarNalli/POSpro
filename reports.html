@@ -286,12 +286,11 @@
             if (!session) return window.location.href = 'login.html';
             document.body.classList.add('authenticated');
             
-            // Set default dates: 1st of month to today
+            // Set default dates: Today to Today
             const now = new Date();
-            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
             const today = now.toISOString().split('T')[0];
             
-            document.getElementById('filter-from').value = firstDay;
+            document.getElementById('filter-from').value = today;
             document.getElementById('filter-to').value = today;
 
             await loadFilters();
